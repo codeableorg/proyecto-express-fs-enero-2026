@@ -1,0 +1,97 @@
+// import { sendHtml } from "../utils/response.js";
+
+import { getLayout } from "../utils/html.js";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { HttpError } from "../utils/errors.js";
+
+const home = `
+    <h1>Bienvenido a Vanilla Node Web Server</h1>
+    <section>
+      <h2>Prueba la API</h2>
+      <ul>
+        <li><a href="/api/health">/api/health</a></li>
+        <li><a href="/api/time">/api/time</a></li>
+      </ul>
+    </section>
+    <section>
+      <h2>Conoce a la mascota</h2>
+      <figure>
+        <img src="node-mascot.svg" alt="Mascota de Node.js" width="120" />
+        <figcaption>Mascota de Node.js</figcaption>
+      </figure>
+    </section>
+  `;
+
+const contact = `
+    <section>
+      <h2>Formulario de Contacto</h2>
+      <form action="/contact" method="POST">
+        <div>
+          <label for="name">Nombre:</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div>
+          <label for="email">Correo electrónico:</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div>
+          <label for="message">Mensaje:</label>
+          <textarea id="message" name="message" required></textarea>
+        </div>
+        <button type="submit">Enviar</button>
+      </form>
+    </section>
+  `;
+
+export async function getHome(_req, res) {
+  const pagina = getLayout("Inicio", home);
+  res.status(200).send(pagina);
+}
+
+export async function getContact(_req, res) {
+  const pagina = getLayout("Nuevo Contacto", contact);
+  res.status(200).send(pagina);
+}
+
+const DATA_DIR = path.join(import.meta.dirname, "../data");
+const MESSAGES_FILE = path.join(DATA_DIR, "messages.json");
+
+export async function postContact(req, res) {
+  const { body } = req;
+  const { name, email, message } = body;
+
+  if (!name || !email || !message) {
+    throw new HttpError("Faltan campos requeridos", 400);
+  }
+
+  let messages;
+  try {
+    const data = await fs.readFile(MESSAGES_FILE, "utf-8");
+
+    messages = data.trim() ? JSON.parse(data) : [];
+  } catch (error) {
+    // Cualquier otro error se trata como un error de servidor.
+
+    if (error.code === "ENOENT") {
+      await fs.mkdir(DATA_DIR, { recursive: true });
+
+      await fs.writeFile(MESSAGES_FILE, "[]", { flag: "wx" });
+    }
+
+    return res.status(500).send();
+  }
+
+  messages.push({
+    name,
+    email,
+    message,
+    timestamp: new Date().toISOString(),
+  });
+
+  const dataToWrite = JSON.stringify(messages, null, 2);
+  await fs.writeFile(MESSAGES_FILE, dataToWrite);
+
+  res.status(200).send("Recibiendo tu mensaje");
+  return;
+}
