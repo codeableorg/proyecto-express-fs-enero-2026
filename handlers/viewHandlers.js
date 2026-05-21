@@ -45,8 +45,7 @@ const contact = `
   `;
 
 export async function getHome(_req, res) {
-  const pagina = getLayout("Inicio", home);
-  res.status(200).send(pagina);
+  res.render("index");
 }
 
 export async function getContact(_req, res) {
