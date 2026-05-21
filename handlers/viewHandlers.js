@@ -44,6 +44,11 @@ const contact = `
     </section>
   `;
 
+export async function getLegacyHome(req, res) {
+  const pagina = getLayout("Inicio", home);
+  res.status(200).send(pagina);
+}
+
 export async function getHome(_req, res) {
   res.render("index");
 }
